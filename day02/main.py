@@ -1,4 +1,5 @@
 import fileinput
+from functools import reduce 
 import re
 
 # run from command line as:
@@ -58,3 +59,16 @@ def sum_possible_games(game_strings):
 
 input = [i.strip() for i in fileinput.input()]
 print(sum_possible_games(input))
+
+def sum_powers(game_strings):
+    games = [parse_game(game_string).get("totals").values() for game_string in game_strings]
+    return sum([
+        reduce(
+            lambda x, y: x * y,
+            game,
+            1
+        )
+        for game in games
+    ])
+
+print(sum_powers(input))
