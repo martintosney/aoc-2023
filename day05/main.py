@@ -27,13 +27,10 @@ def parse_almanac(almanac_text):
             (target_start, source_start, range_length) = [
                 int(seed.group()) for seed in re.finditer("\d+", almanac_line)
             ]
-            maps.setdefault(map_from, {}).setdefault("mappings", []).update({
-                source: target
-                for source, target in zip(
-                    range(source_start, source_start + range_length),
-                    range(target_start, target_start + range_length),
-                )
-            })
+            maps.setdefault(map_from, {}).setdefault("mappings", []).append(
+                # Start        End                          Delta to apply
+                (source_start, source_start + range_length, target_start - source_start)
+            )
 
     return (seeds, maps)
 
@@ -46,14 +43,16 @@ print(maps)
 
 locations = []
 for seed in seeds:
-    resource_type = 'seed'
+    resource_type = "seed"
     current_value = seed
-    while resource_type != 'location':
-        current_value = maps[resource_type]["mappings"].get(current_value ,current_value)
+    while resource_type != "location":
+        resource_map = [
+            m
+            for m in maps[resource_type]["mappings"]
+            if m[0] <= current_value and m[1] >= current_value
+        ]
+        current_value += resource_map[0][2] if resource_map else 0
         resource_type = maps[resource_type]["target"]
-        print(f"{resource_type}: {current_value}")
     locations.append(current_value)
 
-#print(locations[2])
-print(locations)
 print(min(locations))
