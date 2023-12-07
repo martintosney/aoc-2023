@@ -4,7 +4,7 @@ import functools
 import itertools
 
 
-RANK_ORDER = "123456789TJQKA"
+RANK_ORDER = "J23456789TQKA"
 RANKS = {rank: value for rank, value in zip(RANK_ORDER, range(len(RANK_ORDER)))}
 
 
@@ -22,11 +22,18 @@ class Hand:
         self._cards = cards
         self._bid = bid
         self._card_values = [RANKS[card] for card in cards]
+        self._card_map = {
+            k: len(list(g)) for k, g in itertools.groupby(sorted(self._card_values))
+        }
+        self._jokers = self._card_map.get(RANKS["J"], 0)
         self._card_groups = sorted(
             [
-                (len(list(g)), k)
-                for k, g in itertools.groupby(sorted(self._card_values))
+                (k, len(list(g)))
+                for k, g in itertools.groupby(
+                    sorted([v for v in self._card_values if v != RANKS["J"]])
+                )
             ],
+            key=lambda g: (g[1], g[0]),
             reverse=True,
         )
 
@@ -37,18 +44,24 @@ class Hand:
         return self._card_values
 
     def rank(self):
-        if self._card_groups[0][0] == 5:
-            return self._FIVE_OF_A_KIND
-        if self._card_groups[0][0] == 4:
-            return self._FOUR_OF_A_KIND
-        if self._card_groups[0][0] == 3 and self._card_groups[1][0] == 2:
-            return self._FULL_HOUSE
-        if self._card_groups[0][0] == 3:
-            return self._THREE_OF_A_KIND
-        if self._card_groups[0][0] == 2 and self._card_groups[1][0] == 2:
-            return self._TWO_PAIR
-        if self._card_groups[0][0] == 2:
-            return self._ONE_PAIR
+        if not self._card_groups:
+            return self._FIVE_OF_A_KIND  # i.e. 5 Jokers
+
+        match (self._card_groups[0][1] + self._jokers):
+            case 5:
+                return self._FIVE_OF_A_KIND
+            case 4:
+                return self._FOUR_OF_A_KIND
+            case 3:
+                if self._card_groups[1][1] == 2:
+                    return self._FULL_HOUSE
+                else:
+                    return self._THREE_OF_A_KIND
+            case 2:
+                if self._card_groups[1][1] == 2:
+                    return self._TWO_PAIR
+                else:
+                    return self._ONE_PAIR
 
         return self._HIGH_CARD
 
